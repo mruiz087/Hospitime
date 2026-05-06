@@ -1,6 +1,6 @@
 {
-  "name": "OsakiHours Pro",
-  "short_name": "OsakiHours",
+  "name": "HospiTime",
+  "short_name": "HospiTime",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0072bc",

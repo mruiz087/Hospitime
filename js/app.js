@@ -1,8 +1,21 @@
 const OFFICIAL_HOLIDAYS = ["01-01", "01-06", "04-02", "04-03", "04-06", "05-01", "07-25", "08-15", "10-12", "11-01", "12-06", "12-08", "12-25"];
-const DEFAULT_SETTINGS = { 
-    work: 1592, vacation: 168, ap: 40, 
-    workDay: 7.17, workNight: 11.17,
-    apVacDay: 7, apVacNight: 10
+const DEFAULT_SETTINGS = {
+    // Bolsa anual
+    work: 1592,
+    jornadaTipo: 'full',
+    // AMB: M/T = 7h
+    ambDay: 7.0,
+    // HOSPITAL
+    hosDayBase: 7.0, 
+    hosNightBase: 10.0, 
+    hosE12: 12.0,
+    solDay: 0.17,
+    solNight: 1.17,
+    // Vacaciones: Diurna = 7h, Nocturna = 10h
+    vacation: 168, vacDay: 7, vacNight: 10,
+    // AP: M/T = 7h, N = 10h
+    ap: 45, apDay: 7, apNight: 10,
+    proporcional: true
 };
 
 const translations = {
@@ -10,32 +23,44 @@ const translations = {
         balance: "Balance Exceso / Defecto", vacation: "Vacaciones", ap: "Horas AP",
         startContract: "Inicio Contrato", endContract: "Fin Contrato", settings: "Ajustes",
         lang: "Idioma / Hizkuntza", holidays: "Festivos Locales", add: "Añadir",
-        annualBag: "Bolsa Anual (Horas)", shiftValue: "Valores Turnos TRABAJO (Dec)",
-        apVacValue: "Valores AP / VACACIONES (Dec)",
+        annualBag: "Bolsa Anual (Horas)", shiftValue: "Turnos hospital",
+        apVacValue: "VACACIONES",
         dataTitle: "Datos y Backup", pdf: "Descargar PDF", export: "Exportar Copia JSON",
         import: "Restaurar Copia", reset: "Borrar datos de contrato y turnos",
         work: "Laboral", vacs: "Vacas", delete: "Borrar", save: "Guardar",
         overlap: "Solape (Minutos)", cal: "Calendario", dat: "Datos",
-        vDay: "Diurna", vNight: "Nocturna"
+        vDay: "Diurna", vNight: "Nocturna", amb: "AMBULA", hos: "HOSPITAL",
+        bag_full: "Completa (1592 h)", bag_half: "½ Jornada (×0,5)", bag_third: "⅓ Jornada (×0,333)",
+        bag_twothirds: "⅔ Jornada (×0,667)",
+        ambHours: "AMBULA — horas", mtShift: "Mañana / Tarde (M–T)",
+        hosBase: "HOSPITAL — Turnos Base (h)", mtBase: "M/T Base", nBase: "Noche Base", hosE: "Turno E",
+        solTitle: "Incrementos por Solape (h)", vacAnnual: "Horas anuales", vacDay: "Día diurno (h)", vacNight: "Día nocturno (h)",
+        apTitle: "AP (Asuntos Propios)", apDay: "M/T (h)", apNight: "Noche (N)"
     },
     eu: {
         balance: "Oreka Gehiegizkoa / Gutxiegizkoa", vacation: "Oporrak", ap: "AP Orduak",
         startContract: "Kontratu Hasiera", endContract: "Kontratu Amaiera", settings: "Ezarpenak",
         lang: "Hizkuntza / Idioma", holidays: "Herriko Jaiak", add: "Gehitu",
-        annualBag: "Urteko Poltsa (Orduak)", shiftValue: "LAN Txanden Balioak (Dec)",
-        apVacValue: "AP / OPOR Txanden Balioak (Dec)",
+        annualBag: "Urteko Poltsa (Orduak)", shiftValue: "Hospital lanaldiak",
+        apVacValue: "OPORRAK",
         dataTitle: "Datuak eta Backup", pdf: "PDFa Deskargatu", export: "JSON Kopia Esportatu",
         import: "Kopia Berreskuratu", reset: "Kontratu eta txanda datuak ezabatu",
         work: "Lanekoa", vacs: "Oporrak", delete: "Ezabatu", save: "Gorde",
         overlap: "Solapea (Minutuak)", cal: "Egutegia", dat: "Datuak",
-        vDay: "Egunekoa", vNight: "Gauekoa"
+        vDay: "Egunekoa", vNight: "Gauekoa", amb: "AMBULA", hos: "HOSPITAL",
+        bag_full: "Osoa (1592 h)", bag_half: "½ Lanaldi (×0,5)", bag_third: "⅓ Lanaldi (×0,333)",
+        bag_twothirds: "⅔ Lanaldi (×0,667)",
+        ambHours: "AMBULA — orduak", mtShift: "Goiza / Arratsaldea (G–A)",
+        hosBase: "HOSPITAL — Oinarrizko Txandak (h)", mtBase: "G/A Oinarria", nBase: "Gaua Oinarria", hosE: "E Txanda",
+        solTitle: "Solape gehikuntzak (h)", vacAnnual: "Urteko orduak", vacDay: "Eguneko ordua (h)", vacNight: "Gaueko ordua (h)",
+        apTitle: "AP (Norberarentzako Egunak)", apDay: "G/A (h)", apNight: "Gaua (G)"
     }
 };
 
 let state = {
     history: JSON.parse(localStorage.getItem('osaki_history')) || [],
     contract: JSON.parse(localStorage.getItem('osaki_contract')) || { start: '', end: '' },
-    settings: JSON.parse(localStorage.getItem('osaki_settings')) || DEFAULT_SETTINGS,
+    settings: Object.assign({}, DEFAULT_SETTINGS, JSON.parse(localStorage.getItem('osaki_settings') || '{}')),
     localHolidays: JSON.parse(localStorage.getItem('osaki_local_holidays')) || [],
     lang: localStorage.getItem('osaki_lang') || 'es'
 };
@@ -48,8 +73,9 @@ let lastSelectedBtnLabel = '';
 function formatHours(decimal) {
     const isNegative = decimal < 0;
     const absVal = Math.abs(decimal);
-    const h = Math.floor(absVal);
-    const m = Math.round((absVal - h) * 60);
+    let h = Math.floor(absVal);
+    let m = Math.round((absVal - h) * 60);
+    if (m === 60) { h++; m = 0; }
     return `${isNegative ? '-' : ''}${h}h ${String(m).padStart(2, '0')}m`;
 }
 
@@ -67,33 +93,47 @@ function applyLanguage() {
         'label-balance': l.balance, 'label-vac-top': l.vacation, 'label-ap-top': l.ap,
         'label-start': l.startContract, 'label-end': l.endContract, 'title-settings': l.settings,
         'label-lang': l.lang, 'label-holidays': l.holidays, 'btn-add-holiday': l.add,
-        'label-bag': l.annualBag, 'label-set-vac': l.vacation.substring(0,5).toUpperCase(),
+        'label-bag': l.annualBag, 'label-set-vac': l.vacation.substring(0, 5).toUpperCase(),
         'label-shift-val': l.shiftValue, 'label-shift-apvac': l.apVacValue,
-        'title-data': l.dataTitle, 'btn-pdf': l.pdf, 'btn-export': l.export, 'btn-import': l.import, 
-        'btn-reset': l.reset, 'type-work': l.work, 'type-vacation': l.vacs, 'btn-delete': l.delete,
+        'title-data': l.dataTitle, 'btn-pdf': l.pdf, 'btn-export': l.export, 'btn-import': l.import,
+        'btn-reset': l.reset, 'type-hos': l.hos, 'type-amb': l.amb, 'type-vacation': l.vacs, 'btn-delete': l.delete,
         'btn-save': l.save, 'label-overlap': l.overlap, 'nav-label-cal': l.cal,
         'nav-label-set': l.settings, 'nav-label-dat': l.dat,
-        'label-vac-day': l.vDay, 'label-vac-night': l.vNight
+        'label-vac-day': l.vDay, 'label-vac-night': l.vNight,
+        'opt-full': l.bag_full, 'opt-half': l.bag_half, 'opt-third': l.bag_third, 'opt-twothirds': l.bag_twothirds,
+        'label-amb-hours': l.ambHours, 'label-amb-day': l.mtShift,
+        'label-hos-base': l.hosBase, 'label-mt-base': l.mtBase, 'label-n-base': l.nBase, 'label-hos-e': l.hosE,
+        'label-sol-title': l.solTitle, 'label-sol-day': l.mtBase, 'label-sol-night': l.nBase,
+        'label-vac-annual': l.vacAnnual, 'label-vac-d': l.vacDay, 'label-vac-n': l.vacNight,
+        'label-ap-title': l.apTitle, 'label-ap-annual': l.vacAnnual, 'label-ap-d': l.apDay, 'label-ap-n': l.apNight
     };
     for (let id in map) {
         const el = document.getElementById(id);
         if (el) el.innerText = map[id];
     }
-    document.getElementById('lang-es').className = `flex-1 py-3 rounded-xl text-xs font-bold border-2 transition-all ${state.lang === 'es' ? 'osaki-blue text-white border-transparent' : 'bg-white text-slate-400 border-slate-100'}`;
-    document.getElementById('lang-eu').className = `flex-1 py-3 rounded-xl text-xs font-bold border-2 transition-all ${state.lang === 'eu' ? 'osaki-blue text-white border-transparent' : 'bg-white text-slate-400 border-slate-100'}`;
+    document.getElementById('lang-es').className = `flex-1 py-3 rounded-xl text-xs font-bold border-2 transition-all ${state.lang === 'es' ? 'hospi-blue text-white border-transparent' : 'bg-white text-slate-400 border-slate-100'}`;
+    document.getElementById('lang-eu').className = `flex-1 py-3 rounded-xl text-xs font-bold border-2 transition-all ${state.lang === 'eu' ? 'hospi-blue text-white border-transparent' : 'bg-white text-slate-400 border-slate-100'}`;
 }
 
 function syncInputs() {
     const s = state.settings;
     document.getElementById('set-work').value = s.work;
+    document.getElementById('set-jornada-tipo').value = s.jornadaTipo;
+    document.getElementById('set-amb-day').value = s.ambDay;
+    document.getElementById('set-hos-day-base').value = s.hosDayBase;
+    document.getElementById('set-hos-night-base').value = s.hosNightBase;
+    document.getElementById('set-work-d12').value = s.hosE12;
+    document.getElementById('set-sol-day').value = s.solDay;
+    document.getElementById('set-sol-night').value = s.solNight;
     document.getElementById('set-vac').value = s.vacation;
+    document.getElementById('set-vac-day').value = s.vacDay;
+    document.getElementById('set-vac-night').value = s.vacNight;
     document.getElementById('set-ap').value = s.ap;
-    document.getElementById('set-work-day').value = s.workDay;
-    document.getElementById('set-work-night').value = s.workNight;
-    document.getElementById('set-apvac-day').value = s.apVacDay;
-    document.getElementById('set-apvac-night').value = s.apVacNight;
-    if(state.contract.start) document.getElementById('start-date').value = state.contract.start;
-    if(state.contract.end) document.getElementById('end-date').value = state.contract.end;
+    document.getElementById('set-ap-day').value = s.apDay;
+    document.getElementById('set-ap-night').value = s.apNight;
+    document.getElementById('set-ap').value = s.ap;
+    if (state.contract.start) document.getElementById('start-date').value = state.contract.start;
+    if (state.contract.end) document.getElementById('end-date').value = state.contract.end;
 }
 
 function renderCalendar() {
@@ -102,7 +142,7 @@ function renderCalendar() {
     const year = viewDate.getFullYear();
     const month = viewDate.getMonth();
     document.getElementById('current-month-year').innerText = new Intl.DateTimeFormat(state.lang === 'eu' ? 'eu-ES' : 'es-ES', { month: 'long', year: 'numeric' }).format(viewDate);
-    
+
     const firstDay = new Date(year, month, 1).getDay();
     const totalDays = new Date(year, month + 1, 0).getDate();
     let startOffset = (firstDay === 0) ? 6 : firstDay - 1;
@@ -110,12 +150,12 @@ function renderCalendar() {
     for (let i = 0; i < startOffset; i++) grid.innerHTML += `<div class="bg-slate-50 h-16 opacity-50"></div>`;
 
     for (let day = 1; day <= totalDays; day++) {
-        const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const shift = state.history.find(e => e.date === dateStr);
         const holiday = isHoliday(dateStr);
-        const inContract = state.contract.start && state.contract.end && 
-                           new Date(dateStr) >= new Date(state.contract.start) && 
-                           new Date(dateStr) <= new Date(state.contract.end);
+        const inContract = state.contract.start && state.contract.end &&
+            new Date(dateStr) >= new Date(state.contract.start) &&
+            new Date(dateStr) <= new Date(state.contract.end);
 
         let cssClass = inContract ? 'bg-white' : 'day-off-contract';
         if (shift) {
@@ -127,7 +167,7 @@ function renderCalendar() {
 
         let icons = '';
         if (holiday) icons += '<span class="absolute top-1 right-1 text-[8px] text-red-500 font-black">★</span>';
-        
+
         // Iconos específicos para Vacaciones (Sol/Luna) sin texto
         if (shift && shift.type === 'vacation') {
             const isNightV = shift.btnLabel === 'V-N';
@@ -145,15 +185,24 @@ function renderCalendar() {
 
 function openDay(date) {
     document.getElementById('input-date').value = date;
-    document.getElementById('modal-date-title').innerText = new Date(date).toLocaleDateString(state.lang === 'eu' ? 'eu-ES' : 'es-ES', { day:'numeric', month:'long'});
+    document.getElementById('modal-date-title').innerText = new Date(date).toLocaleDateString(state.lang === 'eu' ? 'eu-ES' : 'es-ES', { day: 'numeric', month: 'long' });
     const existing = state.history.find(e => e.date === date);
     if (existing) {
         selectMainType(existing.type);
-        document.getElementById('input-overlap').value = existing.overlap || 0;
-        if(existing.btnLabel) setShift(existing.btnLabel, document.getElementById(`btn-${existing.btnLabel}`));
+        document.getElementById('input-overlap-check').checked = !!existing.overlap;
+        if (existing.btnLabel) {
+            const btnId = `btn-${existing.type}-${existing.btnLabel}`;
+            const btn = document.getElementById(btnId);
+            if (btn) setShift(existing.btnLabel, btn);
+        }
         document.getElementById('btn-delete').classList.remove('hidden');
-    } else { 
-        selectMainType('work'); document.getElementById('btn-delete').classList.add('hidden'); 
+    } else {
+        selectMainType('hos'); 
+        document.getElementById('input-overlap-check').checked = true;
+        // Inicializamos con un turno por defecto (M) para que selectedShiftHours no sea 0
+        const defaultBtn = document.getElementById('btn-hos-M');
+        if (defaultBtn) setShift('M', defaultBtn);
+        document.getElementById('btn-delete').classList.add('hidden');
     }
     document.getElementById('shift-modal').classList.remove('hidden');
 }
@@ -161,43 +210,82 @@ function openDay(date) {
 function selectMainType(type) {
     currentType = type;
     document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('border-blue-500', 'bg-blue-50', 'text-blue-600'));
-    document.getElementById(`type-${type}`).classList.add('border-blue-500', 'bg-blue-50', 'text-blue-600');
-    document.getElementById('shifts-work-ap').classList.toggle('hidden', type === 'vacation');
+    const btn = document.getElementById(`type-${type}`);
+    if (btn) btn.classList.add('border-blue-500', 'bg-blue-50', 'text-blue-600');
+    
+    document.getElementById('shifts-amb').classList.toggle('hidden', type !== 'amb');
+    document.getElementById('shifts-hos').classList.toggle('hidden', type !== 'hos');
     document.getElementById('shifts-vacation').classList.toggle('hidden', type !== 'vacation');
-    document.getElementById('overlap-container').classList.toggle('hidden', type !== 'work');
+    document.getElementById('shifts-ap').classList.toggle('hidden', type !== 'ap');
+    
+    // El solape solo se muestra para HOSPITAL
+    document.getElementById('overlap-container').classList.toggle('hidden', type !== 'hos');
 }
 
 function setShift(type, btn) {
-    document.querySelectorAll('.shift-btn').forEach(b => b.classList.remove('shift-selected-M', 'shift-selected-T', 'shift-selected-N', 'shift-selected-V-D', 'shift-selected-V-N'));
+    document.querySelectorAll('.shift-btn').forEach(b => b.classList.remove('shift-selected-M', 'shift-selected-T', 'shift-selected-N', 'shift-selected-D', 'shift-selected-E', 'shift-selected-V-D', 'shift-selected-V-N'));
     btn.classList.add(`shift-selected-${type}`);
     lastSelectedBtnLabel = type;
-    
-    // Lógica de valores por tipo
-    if (currentType === 'work') {
-        selectedShiftHours = (type === 'N') ? state.settings.workNight : state.settings.workDay;
-    } else {
-        selectedShiftHours = (type === 'N' || type === 'V-N') ? state.settings.apVacNight : state.settings.apVacDay;
+    updateShiftValue();
+}
+
+function updateShiftValue() {
+    const s = state.settings;
+    const type = lastSelectedBtnLabel;
+    const hasOverlap = document.getElementById('input-overlap-check').checked;
+
+    if (currentType === 'amb') {
+        selectedShiftHours = s.ambDay;
+    } else if (currentType === 'hos') {
+        if (type === 'N') {
+            selectedShiftHours = hasOverlap ? (s.hosNightBase + s.solNight) : s.hosNightBase;
+        } else if (type === 'E') {
+            selectedShiftHours = s.hosE12;
+        } else { // M o T
+            selectedShiftHours = hasOverlap ? (s.hosDayBase + s.solDay) : s.hosDayBase;
+        }
+    } else if (currentType === 'vacation') {
+        selectedShiftHours = (type === 'V-N') ? s.vacNight : s.vacDay;
+    } else if (currentType === 'ap') {
+        selectedShiftHours = (type === 'N') ? s.apNight : s.apDay;
     }
+    selectedShiftHours = applyRounding(selectedShiftHours, s.redondeoMin);
 }
 
 function saveShift() {
     const date = document.getElementById('input-date').value;
-    const overlap = currentType === 'work' ? (parseFloat(document.getElementById('input-overlap').value) || 0) : 0;
+    const hasOverlap = currentType === 'hos' ? document.getElementById('input-overlap-check').checked : false;
     state.history = state.history.filter(e => e.date !== date);
-    state.history.push({ date, type: currentType, real: selectedShiftHours + (overlap / 60), overlap, btnLabel: lastSelectedBtnLabel });
+    state.history.push({ 
+        date, 
+        type: currentType, 
+        real: selectedShiftHours, 
+        overlap: hasOverlap, 
+        btnLabel: lastSelectedBtnLabel 
+    });
     localStorage.setItem('osaki_history', JSON.stringify(state.history));
     recalculateEverything(); renderCalendar(); closeModal();
 }
 
 function updateSettings() {
+    const g = id => document.getElementById(id);
     state.settings = {
-        work: parseFloat(document.getElementById('set-work').value),
-        vacation: parseFloat(document.getElementById('set-vac').value),
-        ap: parseFloat(document.getElementById('set-ap').value),
-        workDay: parseFloat(document.getElementById('set-work-day').value),
-        workNight: parseFloat(document.getElementById('set-work-night').value),
-        apVacDay: parseFloat(document.getElementById('set-apvac-day').value),
-        apVacNight: parseFloat(document.getElementById('set-apvac-night').value)
+        work: parseFloat(g('set-work').value) || 1592,
+        jornadaTipo: g('set-jornada-tipo').value,
+        redondeoMin: 0,
+        ambDay: parseFloat(g('set-amb-day').value) || 7.0,
+        hosDayBase: parseFloat(g('set-hos-day-base').value) || 7.0,
+        hosNightBase: parseFloat(g('set-hos-night-base').value) || 10.0,
+        hosE12: parseFloat(g('set-work-d12').value) || 12.0,
+        solDay: parseFloat(g('set-sol-day').value) || 0.17,
+        solNight: parseFloat(g('set-sol-night').value) || 1.17,
+        vacation: parseFloat(g('set-vac').value) || 168,
+        vacDay: parseFloat(g('set-vac-day').value) || 7,
+        vacNight: parseFloat(g('set-vac-night').value) || 10,
+        ap: parseFloat(g('set-ap').value) || 45,
+        apDay: parseFloat(g('set-ap-day').value) || 7,
+        apNight: parseFloat(g('set-ap-night').value) || 10,
+        proporcional: true
     };
     localStorage.setItem('osaki_settings', JSON.stringify(state.settings));
     recalculateEverything();
@@ -210,34 +298,75 @@ function closeModal() { document.getElementById('shift-modal').classList.add('hi
 function changeMonth(o) { viewDate.setMonth(viewDate.getMonth() + o); renderCalendar(); }
 function attemptOpenDay(d, inC) { if (!state.contract.start || !state.contract.end) { alert(state.lang === 'eu' ? "Kontratuaren datak ezarri" : "Configura fechas contrato"); return; } if (inC) openDay(d); }
 
-function recalculateEverything() {
-    let ratios = { work: 0, vac: 0, ap: 0 };
-    if (state.contract.start && state.contract.end) {
-        const diff = Math.ceil(Math.abs(new Date(state.contract.end) - new Date(state.contract.start)) / 86400000) + 1;
-        const r = Math.min(diff / 365, 1);
-        ratios.work = state.settings.work * r;
-        ratios.vac = state.settings.vacation * r;
-        ratios.ap = state.settings.ap * r;
+// Aplica redondeo configurable (en minutos) a horas decimales
+function applyRounding(hours, roundMin) {
+    if (!roundMin || roundMin <= 0) return hours;
+    const totalMin = hours * 60;
+    const rounded = Math.round(totalMin / roundMin) * roundMin;
+    return rounded / 60;
+}
+
+// Calcula horas de bolsa trabajo según tipo de jornada
+function jornadaHoras(baseHours, tipo) {
+    switch (tipo) {
+        case 'half': return baseHours * 0.5;
+        case 'third': return baseHours * 0.3333;
+        case 'two_thirds': return baseHours * 0.6667;
+        default: return baseHours; // full
     }
+}
+
+function recalculateEverything() {
+    const s = state.settings;
+    let ratios = { work: 0, vac: 0, ap: 0 };
+    
+    if (state.contract.start && state.contract.end) {
+        const start = new Date(state.contract.start);
+        const end = new Date(state.contract.end);
+        if (!isNaN(start) && !isNaN(end)) {
+            const diff = Math.ceil(Math.abs(end - start) / 86400000) + 1;
+            const r = s.proporcional ? Math.min(diff / 365, 1) : 1;
+            ratios.work = jornadaHoras(s.work || 1592, s.jornadaTipo) * r;
+            ratios.vac = jornadaHoras(s.vacation || 168, s.jornadaTipo) * r;
+            ratios.ap = jornadaHoras(s.ap || 45, s.jornadaTipo) * r;
+        }
+    }
+
     let worked = 0, uVac = 0, uAP = 0;
     state.history.forEach(e => {
-        if (e.type === 'work') worked += e.real;
-        else if (e.type === 'vacation') uVac += e.real;
-        else if (e.type === 'ap') uAP += e.real;
+        const val = parseFloat(e.real) || 0;
+        const type = (e.type || "").toLowerCase();
+        
+        // Contamos como trabajo: amb, hos y el antiguo work
+        if (['amb', 'hos', 'work'].includes(type)) {
+            worked += val;
+        } else if (type === 'vacation') {
+            uVac += val;
+        } else if (type === 'ap') {
+            uAP += val;
+        }
     });
+
     const balance = worked - ratios.work;
+    
     const balanceEl = document.getElementById('total-balance');
-    balanceEl.innerText = formatHours(balance);
-    balanceEl.classList.remove('balance-positive', 'balance-negative');
-    if (balance > 0) balanceEl.classList.add('balance-positive');
-    else if (balance < 0) balanceEl.classList.add('balance-negative');
-    document.getElementById('remaining-vac').innerText = formatHours(ratios.vac - uVac);
-    document.getElementById('remaining-ap').innerText = formatHours(ratios.ap - uAP);
+    if (balanceEl) {
+        balanceEl.innerText = formatHours(balance);
+        balanceEl.classList.remove('balance-positive', 'balance-negative');
+        if (balance > 0.001) balanceEl.classList.add('balance-positive');
+        else if (balance < -0.001) balanceEl.classList.add('balance-negative');
+    }
+
+    const vacEl = document.getElementById('remaining-vac');
+    if (vacEl) vacEl.innerText = formatHours(ratios.vac - uVac);
+    
+    const apEl = document.getElementById('remaining-ap');
+    if (apEl) apEl.innerText = formatHours(ratios.ap - uAP);
 }
 
 function addLocalHoliday() {
     const v = document.getElementById('local-holiday-input').value;
-    if(v && !state.localHolidays.includes(v)) {
+    if (v && !state.localHolidays.includes(v)) {
         state.localHolidays.push(v);
         localStorage.setItem('osaki_local_holidays', JSON.stringify(state.localHolidays));
         renderLocalHolidays(); renderCalendar();
@@ -252,7 +381,7 @@ function renderLocalHolidays() {
     const list = document.getElementById('local-holidays-list');
     list.innerHTML = '';
     state.localHolidays.forEach(d => {
-        list.innerHTML += `<span class="bg-red-100 text-red-600 px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-2">${d.split('-').reverse().slice(0,2).join('/')} <i class="fas fa-times cursor-pointer" onclick="removeLocalHoliday('${d}')"></i></span>`;
+        list.innerHTML += `<span class="bg-red-100 text-red-600 px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-2">${d.split('-').reverse().slice(0, 2).join('/')} <i class="fas fa-times cursor-pointer" onclick="removeLocalHoliday('${d}')"></i></span>`;
     });
 }
 function updateContract() {
@@ -261,7 +390,7 @@ function updateContract() {
     recalculateEverything(); renderCalendar();
 }
 function exportBackup() {
-    const blob = new Blob([JSON.stringify(state)], {type: "application/json"});
+    const blob = new Blob([JSON.stringify(state)], { type: "application/json" });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "osaki_backup.json"; a.click();
 }
 function importBackup(input) {
@@ -287,8 +416,8 @@ function showTab(t) {
 }
 async function exportToPDF() {
     const { jsPDF } = window.jspdf; const doc = new jsPDF();
-    doc.text(`Osakidetza - Report`, 14, 20);
-    const rows = state.history.sort((a,b)=>new Date(a.date)-new Date(b.date)).map(e => [new Date(e.date).toLocaleDateString(), e.type.toUpperCase(), e.btnLabel || '-', formatHours(e.real)]);
+    doc.text(`HospiTime - Report`, 14, 20);
+    const rows = state.history.sort((a, b) => new Date(a.date) - new Date(b.date)).map(e => [new Date(e.date).toLocaleDateString(), e.type.toUpperCase(), e.btnLabel || '-', formatHours(e.real)]);
     doc.autoTable({ head: [['Data', 'Tipo', 'Txanda', 'H:min']], body: rows, startY: 30 });
     doc.save("Cuadrante.pdf");
 }
@@ -298,7 +427,7 @@ function deleteCurrentDay() {
     recalculateEverything(); renderCalendar(); closeModal();
 }
 
-function resetAllData() { if(confirm("¿Borrar?")) { localStorage.clear(); location.reload(); } }
+function resetAllData() { if (confirm("¿Borrar?")) { localStorage.clear(); location.reload(); } }
 
 let deferredPrompt;
 
