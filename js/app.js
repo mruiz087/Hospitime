@@ -231,25 +231,31 @@ function setShift(type, btn) {
 
 function updateShiftValue() {
     const s = state.settings;
-    const type = lastSelectedBtnLabel;
-    const hasOverlap = document.getElementById('input-overlap-check').checked;
+    selectedShiftHours = calculateShiftHours(currentType, lastSelectedBtnLabel, document.getElementById('input-overlap-check').checked, s);
+}
 
-    if (currentType === 'amb') {
-        selectedShiftHours = s.ambDay;
-    } else if (currentType === 'hos') {
-        if (type === 'N') {
-            selectedShiftHours = hasOverlap ? (s.hosNightBase + s.solNight) : s.hosNightBase;
-        } else if (type === 'E') {
-            selectedShiftHours = s.hosE12;
+function calculateShiftHours(mainType, btnLabel, hasOverlap, s) {
+    let hours = 0;
+    if (mainType === 'amb') {
+        hours = s.ambDay;
+    } else if (mainType === 'hos') {
+        if (btnLabel === 'N') {
+            hours = hasOverlap ? (s.hosNightBase + s.solNight) : s.hosNightBase;
+        } else if (btnLabel === 'E') {
+            hours = s.hosE12;
         } else { // M o T
-            selectedShiftHours = hasOverlap ? (s.hosDayBase + s.solDay) : s.hosDayBase;
+            hours = hasOverlap ? (s.hosDayBase + s.solDay) : s.hosDayBase;
         }
-    } else if (currentType === 'vacation') {
-        selectedShiftHours = (type === 'V-N') ? s.vacNight : s.vacDay;
-    } else if (currentType === 'ap') {
-        selectedShiftHours = (type === 'N') ? s.apNight : s.apDay;
+    } else if (mainType === 'vacation') {
+        hours = (btnLabel === 'V-N') ? s.vacNight : s.vacDay;
+    } else if (mainType === 'ap') {
+        hours = (btnLabel === 'N') ? s.apNight : s.apDay;
     }
-    selectedShiftHours = applyRounding(selectedShiftHours, s.redondeoMin);
+
+    // REDUCCIÓN DE JORNADA: Se aplica a todo (turno y solapes) proporcionalmente
+    hours = jornadaHoras(hours, s.jornadaTipo);
+
+    return applyRounding(hours, s.redondeoMin);
 }
 
 function saveShift() {
@@ -334,10 +340,14 @@ function recalculateEverything() {
 
     let worked = 0, uVac = 0, uAP = 0;
     state.history.forEach(e => {
+        // Recalculamos el valor real según los ajustes actuales para que sea dinámico
+        if (e.type && e.btnLabel) {
+            e.real = calculateShiftHours(e.type, e.btnLabel, e.overlap, s);
+        }
+        
         const val = parseFloat(e.real) || 0;
         const type = (e.type || "").toLowerCase();
         
-        // Contamos como trabajo: amb, hos y el antiguo work
         if (['amb', 'hos', 'work'].includes(type)) {
             worked += val;
         } else if (type === 'vacation') {
