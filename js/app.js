@@ -360,18 +360,26 @@ function recalculateEverything() {
     const balance = worked - ratios.work;
     
     const balanceEl = document.getElementById('total-balance');
+    const maxBalanceEl = document.getElementById('max-balance');
     if (balanceEl) {
         balanceEl.innerText = formatHours(balance);
         balanceEl.classList.remove('balance-positive', 'balance-negative');
         if (balance > 0.001) balanceEl.classList.add('balance-positive');
         else if (balance < -0.001) balanceEl.classList.add('balance-negative');
     }
+    if (maxBalanceEl) {
+        maxBalanceEl.innerText = `/ ${formatHours(ratios.work)}`;
+    }
 
     const vacEl = document.getElementById('remaining-vac');
+    const maxVacEl = document.getElementById('max-vac');
     if (vacEl) vacEl.innerText = formatHours(ratios.vac - uVac);
+    if (maxVacEl) maxVacEl.innerText = `/ ${formatHours(ratios.vac)}`;
     
     const apEl = document.getElementById('remaining-ap');
+    const maxApEl = document.getElementById('max-ap');
     if (apEl) apEl.innerText = formatHours(ratios.ap - uAP);
+    if (maxApEl) maxApEl.innerText = `/ ${formatHours(ratios.ap)}`;
 }
 
 function addLocalHoliday() {
