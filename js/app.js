@@ -35,7 +35,8 @@ const translations = {
         ambHours: "AMBULA — horas", mtShift: "Mañana / Tarde (M–T)",
         hosBase: "HOSPITAL — Turnos Base (h)", mtBase: "M/T Base", nBase: "Noche Base", hosE: "Turno E",
         solTitle: "Incrementos por Solape (h)", vacAnnual: "Horas anuales", vacDay: "Día diurno (h)", vacNight: "Día nocturno (h)",
-        apTitle: "AP (Asuntos Propios)", apDay: "M/T (h)", apNight: "Noche (N)"
+        apTitle: "AP (Asuntos Propios)", apDay: "M/T (h)", apNight: "Noche (N)",
+        reductionDeleted: "Eliminado por reducción"
     },
     eu: {
         balance: "Oreka Gehiegizkoa / Gutxiegizkoa", vacation: "Oporrak", ap: "AP Orduak",
@@ -53,7 +54,8 @@ const translations = {
         ambHours: "AMBULA — orduak", mtShift: "Goiza / Arratsaldea (G–A)",
         hosBase: "HOSPITAL — Oinarrizko Txandak (h)", mtBase: "G/A Oinarria", nBase: "Gaua Oinarria", hosE: "E Txanda",
         solTitle: "Solape gehikuntzak (h)", vacAnnual: "Urteko orduak", vacDay: "Eguneko ordua (h)", vacNight: "Gaueko ordua (h)",
-        apTitle: "AP (Norberarentzako Egunak)", apDay: "G/A (h)", apNight: "Gaua (G)"
+        apTitle: "AP (Norberarentzako Egunak)", apDay: "G/A (h)", apNight: "Gaua (G)",
+        reductionDeleted: "Lanaldi murrizketagatik ezabatua"
     }
 };
 
@@ -105,7 +107,8 @@ function applyLanguage() {
         'label-hos-base': l.hosBase, 'label-mt-base': l.mtBase, 'label-n-base': l.nBase, 'label-hos-e': l.hosE,
         'label-sol-title': l.solTitle, 'label-sol-day': l.mtBase, 'label-sol-night': l.nBase,
         'label-vac-annual': l.vacAnnual, 'label-vac-d': l.vacDay, 'label-vac-n': l.vacNight,
-        'label-ap-title': l.apTitle, 'label-ap-annual': l.vacAnnual, 'label-ap-d': l.apDay, 'label-ap-n': l.apNight
+        'label-ap-title': l.apTitle, 'label-ap-annual': l.vacAnnual, 'label-ap-d': l.apDay, 'label-ap-n': l.apNight,
+        'label-reduction': l.reductionDeleted
     };
     for (let id in map) {
         const el = document.getElementById(id);
@@ -159,7 +162,9 @@ function renderCalendar() {
 
         let cssClass = inContract ? 'bg-white' : 'day-off-contract';
         if (shift) {
-            if (shift.type === 'vacation') cssClass = 'day-vacation';
+            if (shift.reductionDeleted) {
+                cssClass = 'day-reduction-deleted';
+            } else if (shift.type === 'vacation') cssClass = 'day-vacation';
             else if (shift.type === 'ap') cssClass = 'day-ap';
             else if (holiday) cssClass = 'day-holiday';
             else cssClass = 'day-work';
@@ -187,9 +192,19 @@ function openDay(date) {
     document.getElementById('input-date').value = date;
     document.getElementById('modal-date-title').innerText = new Date(date).toLocaleDateString(state.lang === 'eu' ? 'eu-ES' : 'es-ES', { day: 'numeric', month: 'long' });
     const existing = state.history.find(e => e.date === date);
+    
+    // Mostrar checkbox de reducción solo si jornada no es completa
+    const reductionContainer = document.getElementById('reduction-container');
+    if (state.settings.jornadaTipo !== 'full') {
+        reductionContainer.classList.remove('hidden');
+    } else {
+        reductionContainer.classList.add('hidden');
+    }
+    
     if (existing) {
         selectMainType(existing.type);
         document.getElementById('input-overlap-check').checked = !!existing.overlap;
+        document.getElementById('input-reduction-check').checked = !!existing.reductionDeleted;
         if (existing.btnLabel) {
             const btnId = `btn-${existing.type}-${existing.btnLabel}`;
             const btn = document.getElementById(btnId);
@@ -199,6 +214,7 @@ function openDay(date) {
     } else {
         selectMainType('hos'); 
         document.getElementById('input-overlap-check').checked = true;
+        document.getElementById('input-reduction-check').checked = false;
         // Inicializamos con un turno por defecto (M) para que selectedShiftHours no sea 0
         const defaultBtn = document.getElementById('btn-hos-M');
         if (defaultBtn) setShift('M', defaultBtn);
@@ -252,22 +268,21 @@ function calculateShiftHours(mainType, btnLabel, hasOverlap, s) {
         hours = (btnLabel === 'N') ? s.apNight : s.apDay;
     }
 
-    // REDUCCIÓN DE JORNADA: Se aplica a todo (turno y solapes) proporcionalmente
-    hours = jornadaHoras(hours, s.jornadaTipo);
-
     return applyRounding(hours, s.redondeoMin);
 }
 
 function saveShift() {
     const date = document.getElementById('input-date').value;
     const hasOverlap = currentType === 'hos' ? document.getElementById('input-overlap-check').checked : false;
+    const reductionDeleted = document.getElementById('input-reduction-check').checked;
     state.history = state.history.filter(e => e.date !== date);
     state.history.push({ 
         date, 
         type: currentType, 
         real: selectedShiftHours, 
         overlap: hasOverlap, 
-        btnLabel: lastSelectedBtnLabel 
+        btnLabel: lastSelectedBtnLabel,
+        reductionDeleted: reductionDeleted
     });
     localStorage.setItem('osaki_history', JSON.stringify(state.history));
     recalculateEverything(); renderCalendar(); closeModal();
@@ -294,6 +309,18 @@ function updateSettings() {
         proporcional: true
     };
     localStorage.setItem('osaki_settings', JSON.stringify(state.settings));
+    
+    // Actualizar visibilidad del checkbox de reducción si el modal está abierto
+    const reductionContainer = document.getElementById('reduction-container');
+    const modal = document.getElementById('shift-modal');
+    if (modal && !modal.classList.contains('hidden')) {
+        if (state.settings.jornadaTipo !== 'full') {
+            reductionContainer.classList.remove('hidden');
+        } else {
+            reductionContainer.classList.add('hidden');
+        }
+    }
+    
     recalculateEverything();
 }
 
@@ -340,6 +367,9 @@ function recalculateEverything() {
 
     let worked = 0, uVac = 0, uAP = 0;
     state.history.forEach(e => {
+        // Si el día está marcado como eliminado por reducción, no afecta al balance
+        if (e.reductionDeleted) return;
+        
         // Recalculamos el valor real según los ajustes actuales para que sea dinámico
         if (e.type && e.btnLabel) {
             e.real = calculateShiftHours(e.type, e.btnLabel, e.overlap, s);

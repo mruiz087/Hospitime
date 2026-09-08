@@ -67,6 +67,12 @@
             background-color: #f1f5f9 !important;
         }
 
+        .day-reduction-deleted {
+            opacity: 0.5;
+            background-color: #fef3c7 !important;
+            border-bottom: 3px solid #f59e0b !important;
+        }
+
         .tab-content {
             display: none;
         }
@@ -542,6 +548,14 @@
                         class="text-xs font-black text-blue-800 uppercase tracking-tight">Incluir Solape</label>
                     <input type="checkbox" id="input-overlap-check" onchange="updateShiftValue()"
                         class="w-6 h-6 rounded-lg accent-blue-600 cursor-pointer">
+                </div>
+            </div>
+            <div id="reduction-container" class="bg-amber-50/50 p-4 rounded-2xl border border-amber-100 hidden">
+                <div class="flex items-center justify-between">
+                    <label for="input-reduction-check"
+                        class="text-xs font-black text-amber-800 uppercase tracking-tight" id="label-reduction">Eliminado por reducción</label>
+                    <input type="checkbox" id="input-reduction-check" onchange="updateShiftValue()"
+                        class="w-6 h-6 rounded-lg accent-amber-600 cursor-pointer">
                 </div>
             </div>
             <div class="flex gap-3 mt-6">
