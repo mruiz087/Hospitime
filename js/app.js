@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
     syncInputs();
     renderLocalHolidays();
     recalculateEverything();
-    );
+    renderCalendar();
     applyLanguage();
 });
 
@@ -162,7 +162,7 @@ function renderCalendar() {
 
         let cssClass = inContract ? 'bg-white' : 'day-off-contract';
         let badgeText = '';
-
+        
         if (shift) {
             if (shift.reductionDeleted) {
                 cssClass = 'day-reduction'; // Asegúrate de tener la clase CSS añadida en el HTML
@@ -197,7 +197,6 @@ function renderCalendar() {
                 ${icons}
                 <span class="text-xs font-bold ${holiday ? 'text-red-600' : ''}">${day}</span>
                 ${badgeText ? `<span class="text-[10px] mt-1 badge-${badgeText === 'AP' || badgeText === 'DR' ? badgeText : shift.btnLabel}">${badgeText}</span>` : ''}
-                ${shift ? `<span class="text-[10px] mt-1 ${shift.type === 'ap' ? 'badge-AP' : 'badge-' + shift.btnLabel}">${shift.type === 'ap' ? 'AP-' + shift.btnLabel : (shift.type === 'vacation' ? '' : (shift.btnLabel || ''))}</span>` : ''}
             </div>`;
     }
 }
@@ -517,4 +516,3 @@ async function triggerInstall() {
         if (outcome === 'accepted') deferredPrompt = null;
     }
 }
-
