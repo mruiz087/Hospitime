@@ -1,4 +1,4 @@
-const OFFICIAL_HOLIDAYS = ["01-01", "01-06", "04-02", "04-03", "04-06", "05-01", "07-25", "08-15", "10-12", "11-01", "12-06", "12-08", "12-25"];
+const OFFICIAL_HOLIDAYS = ["01-01", "01-06", "05-01", "07-25", "08-15", "10-12", "11-01", "12-06", "12-08", "12-25"];
 const DEFAULT_SETTINGS = {
     // Bolsa anual
     work: 1592,
@@ -161,14 +161,27 @@ function renderCalendar() {
             new Date(dateStr) <= new Date(state.contract.end);
 
         let cssClass = inContract ? 'bg-white' : 'day-off-contract';
+        let badgeText = '';
+        
         if (shift) {
             if (shift.reductionDeleted) {
-                cssClass = 'day-reduction-deleted';
-            } else if (shift.type === 'vacation') cssClass = 'day-vacation';
-            else if (shift.type === 'ap') cssClass = 'day-ap';
-            else if (holiday) cssClass = 'day-holiday';
-            else cssClass = 'day-work';
-        } else if (holiday && inContract) cssClass = 'day-holiday';
+                cssClass = 'day-reduction'; // Asegúrate de tener la clase CSS añadida en el HTML
+                badgeText = 'DR';
+            } else if (shift.type === 'vacation') {
+                cssClass = 'day-vacation';
+            } else if (shift.type === 'ap') {
+                cssClass = 'day-ap';
+                badgeText = shift.btnLabel || 'AP';
+            } else if (holiday) {
+                cssClass = 'day-holiday';
+                if (shift.btnLabel) badgeText = shift.btnLabel;
+            } else {
+                cssClass = 'day-work';
+                if (shift.btnLabel) badgeText = shift.btnLabel;
+            }
+        } else if (holiday && inContract) {
+            cssClass = 'day-holiday';
+        }
 
         let icons = '';
         if (holiday) icons += '<span class="absolute top-1 right-1 text-[8px] text-red-500 font-black">★</span>';
@@ -183,7 +196,7 @@ function renderCalendar() {
             <div onclick="attemptOpenDay('${dateStr}', ${inContract})" class="${cssClass} h-16 border-r border-b border-slate-100 flex flex-col items-center justify-center relative cursor-pointer active:scale-95 transition-transform">
                 ${icons}
                 <span class="text-xs font-bold ${holiday ? 'text-red-600' : ''}">${day}</span>
-                ${shift && shift.btnLabel && shift.type !== 'vacation' ? `<span class="text-[10px] mt-1 badge-${shift.btnLabel}">${shift.btnLabel}</span>` : ''}
+                ${badgeText ? `<span class="text-[10px] mt-1 badge-${badgeText === 'AP' || badgeText === 'DR' ? badgeText : shift.btnLabel}">${badgeText}</span>` : ''}
             </div>`;
     }
 }
@@ -275,17 +288,25 @@ function saveShift() {
     const date = document.getElementById('input-date').value;
     const hasOverlap = currentType === 'hos' ? document.getElementById('input-overlap-check').checked : false;
     const reductionDeleted = document.getElementById('input-reduction-check').checked;
+
+    let labelToSave = lastSelectedBtnLabel;
+    if (currentType === 'ap' && !labelToSave) {
+        labelToSave = 'AP';
+    }
+
     state.history = state.history.filter(e => e.date !== date);
     state.history.push({ 
         date, 
         type: currentType, 
         real: selectedShiftHours, 
         overlap: hasOverlap, 
-        btnLabel: lastSelectedBtnLabel,
+        btnLabel: labelToSave,
         reductionDeleted: reductionDeleted
     });
     localStorage.setItem('osaki_history', JSON.stringify(state.history));
-    recalculateEverything(); renderCalendar(); closeModal();
+    recalculateEverything(); 
+    renderCalendar(); 
+    closeModal();
 }
 
 function updateSettings() {
