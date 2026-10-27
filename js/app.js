@@ -196,7 +196,7 @@ function renderCalendar() {
             <div onclick="attemptOpenDay('${dateStr}', ${inContract})" class="${cssClass} h-16 border-r border-b border-slate-100 flex flex-col items-center justify-center relative cursor-pointer active:scale-95 transition-transform">
                 ${icons}
                 <span class="text-xs font-bold ${holiday ? 'text-red-600' : ''}">${day}</span>
-                ${badgeText ? `<span class="text-[10px] mt-1 badge-${badgeText === 'AP' || badgeText === 'DR' ? badgeText : shift.btnLabel}">${badgeText}</span>` : ''}
+                ${shift ? `<span class="text-[10px] mt-1 ${shift.type === 'ap' ? 'badge-AP' : 'badge-' + shift.btnLabel}">${shift.type === 'ap' ? 'AP-' + shift.btnLabel : (shift.type === 'vacation' ? '' : (shift.btnLabel || ''))}</span>` : ''}
             </div>`;
     }
 }
