@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
     syncInputs();
     renderLocalHolidays();
     recalculateEverything();
-    renderCalendar();
+    );
     applyLanguage();
 });
 
@@ -196,7 +196,7 @@ function renderCalendar() {
             <div onclick="attemptOpenDay('${dateStr}', ${inContract})" class="${cssClass} h-16 border-r border-b border-slate-100 flex flex-col items-center justify-center relative cursor-pointer active:scale-95 transition-transform">
                 ${icons}
                 <span class="text-xs font-bold ${holiday ? 'text-red-600' : ''}">${day}</span>
-                ${shift ? `<span class="text-[10px] mt-1 ${shift.type === 'ap' ? 'badge-AP' : 'badge-' + shift.btnLabel}">${shift.type === 'ap' ? 'AP-' + shift.btnLabel : (shift.type === 'vacation' ? '' : (shift.btnLabel || ''))}</span>` : ''}
+                ${shift ? `<span class="text-[10px] mt-1 ${shift.type === 'ap' ? 'badge-' + shift.btnLabel : 'badge-' + shift.btnLabel}">${shift.type === 'ap' ? 'AP-' + shift.btnLabel : (shift.type === 'vacation' ? '' : (shift.btnLabel || ''))}</span>` : ''}
             </div>`;
     }
 }
