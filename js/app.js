@@ -162,32 +162,22 @@ function renderCalendar() {
 
         let cssClass = inContract ? 'bg-white' : 'day-off-contract';
         let badgeText = '';
-        let badgeColorClass = '';
-        
+
         if (shift) {
             if (shift.reductionDeleted) {
-                cssClass = 'day-reduction'; 
+                cssClass = 'day-reduction'; // Asegúrate de tener la clase CSS añadida en el HTML
                 badgeText = 'DR';
-                badgeColorClass = 'badge-DR';
             } else if (shift.type === 'vacation') {
                 cssClass = 'day-vacation';
-                badgeText = '';
-            } else if (shift.type && shift.type.toLowerCase() === 'ap') {
+            } else if (shift.type === 'ap') {
                 cssClass = 'day-ap';
-                badgeText = shift.btnLabel ? 'AP-' + shift.btnLabel : 'AP';
-                badgeColorClass = 'badge-' + (shift.btnLabel || 'M');
+                badgeText = shift.btnLabel || 'AP';
             } else if (holiday) {
                 cssClass = 'day-holiday';
-                if (shift.btnLabel) {
-                    badgeText = shift.btnLabel;
-                    badgeColorClass = 'badge-' + shift.btnLabel;
-                }
+                if (shift.btnLabel) badgeText = shift.btnLabel;
             } else {
                 cssClass = 'day-work';
-                if (shift.btnLabel) {
-                    badgeText = shift.btnLabel;
-                    badgeColorClass = 'badge-' + shift.btnLabel;
-                }
+                if (shift.btnLabel) badgeText = shift.btnLabel;
             }
         } else if (holiday && inContract) {
             cssClass = 'day-holiday';
@@ -206,7 +196,8 @@ function renderCalendar() {
             <div onclick="attemptOpenDay('${dateStr}', ${inContract})" class="${cssClass} h-16 border-r border-b border-slate-100 flex flex-col items-center justify-center relative cursor-pointer active:scale-95 transition-transform">
                 ${icons}
                 <span class="text-xs font-bold ${holiday ? 'text-red-600' : ''}">${day}</span>
-                ${badgeText ? `<span class="text-[10px] mt-1 ${badgeColorClass}">${badgeText}</span>` : ''}
+                ${badgeText ? `<span class="text-[10px] mt-1 badge-${badgeText === 'AP' || badgeText === 'DR' ? badgeText : shift.btnLabel}">${badgeText}</span>` : ''}
+                ${shift ? `<span class="text-[10px] mt-1 ${shift.type === 'ap' ? 'badge-AP' : 'badge-' + shift.btnLabel}">${shift.type === 'ap' ? 'AP-' + shift.btnLabel : (shift.type === 'vacation' ? '' : (shift.btnLabel || ''))}</span>` : ''}
             </div>`;
     }
 }
