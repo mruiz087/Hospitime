@@ -252,7 +252,7 @@ function selectMainType(type) {
 }
 
 function setShift(type, btn) {
-    document.querySelectorAll('.shift-btn').forEach(b => b.classList.remove('shift-selected-M', 'shift-selected-T', 'shift-selected-N', 'shift-selected-D', 'shift-selected-E', 'shift-selected-V-D', 'shift-selected-V-N'));
+    document.querySelectorAll('.shift-btn').forEach(b => b.classList.remove('shift-selected-M', 'shift-selected-T', 'shift-selected-N', 'shift-selected-D', 'shift-selected-E', 'shift-selected-V-D', 'shift-selected-V-N','shift-selected-AP-M','shift-selected-AP-T','shift-selected-AP-N'));
     btn.classList.add(`shift-selected-${type}`);
     lastSelectedBtnLabel = type;
     updateShiftValue();
