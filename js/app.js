@@ -405,6 +405,7 @@ function recalculateEverything() {
             uVac += val;
         } else if (type === 'ap') {
             uAP += val;
+            worked += val;
         }
     });
 
