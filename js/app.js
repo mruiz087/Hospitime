@@ -278,7 +278,7 @@ function calculateShiftHours(mainType, btnLabel, hasOverlap, s) {
     } else if (mainType === 'vacation') {
         hours = (btnLabel === 'V-N') ? s.vacNight : s.vacDay;
     } else if (mainType === 'ap') {
-        hours = (btnLabel === 'N') ? s.apNight : s.apDay;
+        hours = (btnLabel === 'AP-N') ? s.apNight : s.apDay;
     }
 
     return applyRounding(hours, s.redondeoMin);
