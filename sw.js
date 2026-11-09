@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hospitime-v2.0';
+const CACHE_NAME = 'hospitime-v2.1';
 const assets = [
   'index.html',
   'manifest.json',

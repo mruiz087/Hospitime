@@ -1,19 +1,16 @@
 const OFFICIAL_HOLIDAYS = ["01-01", "01-06", "05-01", "07-25", "08-15", "10-12", "11-01", "12-06", "12-08", "12-25"];
 const DEFAULT_SETTINGS = {
-    // Bolsa anual
     work: 1592,
     jornadaTipo: 'full',
-    // AMB: M/T = 7h
     ambDay: 7.0,
-    // HOSPITAL
     hosDayBase: 7.0, 
     hosNightBase: 10.0, 
     hosE12: 12.0,
+    hosF9: 5.0,
+    hosNE: 12.0,
     solDay: 0.17,
     solNight: 1.17,
-    // Vacaciones: Diurna = 7h, Nocturna = 10h
     vacation: 168, vacDay: 7, vacNight: 10,
-    // AP: M/T = 7h, N = 10h
     ap: 45, apDay: 7, apNight: 10,
     proporcional: true
 };
@@ -135,6 +132,8 @@ function syncInputs() {
     document.getElementById('set-ap-day').value = s.apDay;
     document.getElementById('set-ap-night').value = s.apNight;
     document.getElementById('set-ap').value = s.ap;
+	document.getElementById('set-hos-f9').value = s.hosF9 !== undefined ? s.hosF9 : 5.0;
+	document.getElementById('set-hos-ne').value = s.hosNE !== undefined ? s.hosNE : 12.0;
     if (state.contract.start) document.getElementById('start-date').value = state.contract.start;
     if (state.contract.end) document.getElementById('end-date').value = state.contract.end;
 }
@@ -252,7 +251,11 @@ function selectMainType(type) {
 }
 
 function setShift(type, btn) {
-    document.querySelectorAll('.shift-btn').forEach(b => b.classList.remove('shift-selected-M', 'shift-selected-T', 'shift-selected-N', 'shift-selected-D', 'shift-selected-E', 'shift-selected-V-D', 'shift-selected-V-N','shift-selected-AP-M','shift-selected-AP-T','shift-selected-AP-N'));
+    document.querySelectorAll('.shift-btn').forEach(b => b.classList.remove(
+        'shift-selected-M', 'shift-selected-T', 'shift-selected-N', 'shift-selected-D', 
+        'shift-selected-E', 'shift-selected-F9', 'shift-selected-NE', 
+        'shift-selected-V-D', 'shift-selected-V-N','shift-selected-AP-M','shift-selected-AP-T','shift-selected-AP-N'
+    ));
     btn.classList.add(`shift-selected-${type}`);
     lastSelectedBtnLabel = type;
     updateShiftValue();
@@ -272,6 +275,10 @@ function calculateShiftHours(mainType, btnLabel, hasOverlap, s) {
             hours = hasOverlap ? (s.hosNightBase + s.solNight) : s.hosNightBase;
         } else if (btnLabel === 'E') {
             hours = s.hosE12;
+        } else if (btnLabel === 'F9') {
+            hours = hasOverlap ? (s.hosF9 + s.solDay) : s.hosF9; // 5h + solape diurno (0.17h)
+        } else if (btnLabel === 'NE') {
+            hours = hasOverlap ? (s.hosNE + s.solNight) : s.hosNE; // 12h + solape nocturno (1.17h)
         } else { // M o T
             hours = hasOverlap ? (s.hosDayBase + s.solDay) : s.hosDayBase;
         }
@@ -327,6 +334,8 @@ function updateSettings() {
         ap: parseFloat(g('set-ap').value) || 45,
         apDay: parseFloat(g('set-ap-day').value) || 7,
         apNight: parseFloat(g('set-ap-night').value) || 10,
+		hosF9: parseFloat(g('set-hos-f9').value) || 5.0,
+		hosNE: parseFloat(g('set-hos-ne').value) || 12.0,
         proporcional: true
     };
     localStorage.setItem('osaki_settings', JSON.stringify(state.settings));

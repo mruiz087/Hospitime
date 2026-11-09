@@ -266,6 +266,28 @@
             text-align: center;
             line-height: 1.1;
         }
+		
+		.shift-selected-F9 {
+            background-color: #0284c7 !important;
+            color: white !important;
+            border-color: #0369a1 !important;
+        }
+
+        .shift-selected-NE {
+            background-color: #312e81 !important;
+            color: white !important;
+            border-color: #1e1b4b !important;
+        }
+
+        .badge-F9 {
+            color: #0284c7;
+            font-weight: 900;
+        }
+
+        .badge-NE {
+            color: #312e81;
+            font-weight: 900;
+        }
     </style>
 </head>
 
@@ -412,6 +434,19 @@
                             class="set-input">
                     </div>
                 </div>
+				
+				<div class="grid grid-cols-2 gap-3 pt-2">
+                    <div>
+                        <p class="sub-label text-sky-500">Tarde Esp. (F9)</p>
+                        <input type="number" step="0.01" id="set-hos-f9" onchange="updateSettings()"
+                            class="set-input">
+                    </div>
+                    <div>
+                        <p class="sub-label text-indigo-800">Noche Esp. (NE)</p>
+                        <input type="number" step="0.01" id="set-hos-ne" onchange="updateSettings()"
+                            class="set-input">
+                    </div>
+                </div>
                 
                 <div class="border-t border-slate-100 pt-3">
                     <p class="text-[9px] font-black text-slate-400 uppercase mb-3 text-center" id="label-sol-title">Incrementos por Solape
@@ -549,7 +584,7 @@
                                 class="text-[10px] font-bold">T</span></button>
                     </div>
 
-                    <!-- HOS: M, T, N, E (12h) -->
+                    <!-- HOS: M, T, N, E (12h), F9, NE -->
                     <div id="shifts-hos" class="space-y-2 hidden">
                         <div class="flex gap-2">
                             <button onclick="setShift('M', this)" id="btn-hos-M"
@@ -573,6 +608,16 @@
                                 class="shift-btn flex-1 py-4 rounded-2xl flex flex-col items-center gap-1">
                                 <i class="fas fa-clock text-base"></i>
                                 <span class="text-[10px] font-bold">E (12h)</span>
+                            </button>
+                            <button onclick="setShift('F9', this)" id="btn-hos-F9"
+                                class="shift-btn flex-1 py-4 rounded-2xl flex flex-col items-center gap-1">
+                                <i class="fas fa-star text-base"></i>
+                                <span class="text-[10px] font-bold">F9 (5h)</span>
+                            </button>
+                            <button onclick="setShift('NE', this)" id="btn-hos-NE"
+                                class="shift-btn flex-1 py-4 rounded-2xl flex flex-col items-center gap-1">
+                                <i class="fas fa-moon text-base"></i>
+                                <span class="text-[10px] font-bold">NE (12h)</span>
                             </button>
                         </div>
                     </div>
